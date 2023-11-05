@@ -77,6 +77,7 @@ class Option {
 };
 
 void        init(OptionsMap&);
+void        new_game();
 void        loop(int argc, char* argv[]);
 void        process_command(const std::string& cmd);
 int         to_cp(Value v);

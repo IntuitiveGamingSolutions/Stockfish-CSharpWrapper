@@ -163,7 +163,7 @@ void go(Position& pos, std::istringstream& is, StateListPtr& states) {
             limits.infinite = 1;
         else if (token == "ponder")
             ponderMode = true;
-
+		
     Threads.start_thinking(pos, states, limits, ponderMode);
 }
 
@@ -251,18 +251,20 @@ int win_rate_model(Value v, int ply) {
 }  // namespace
 
 
+static Position uciPos; // The 'position' state for the UCI engine.
+static StateListPtr uciStates(new std::deque<StateInfo>(1));
+void UCI::new_game() {
+	uciPos.set(StartFEN, false, &uciStates->back(), Threads.main());
+}
+
 // Waits for a command from the stdin, parses it, and then calls the appropriate
 // function. It also intercepts an end-of-file (EOF) indication from the stdin to ensure a
 // graceful exit if the GUI dies unexpectedly. When called with some command-line arguments,
 // like running 'bench', the function returns immediately after the command is executed.
 // In addition to the UCI ones, some additional debug commands are also supported.
 void UCI::loop(int argc, char* argv[]) {
-
-    Position     pos;
     std::string  token, cmd;
-    StateListPtr states(new std::deque<StateInfo>(1));
-
-    pos.set(StartFEN, false, &states->back(), Threads.main());
+    new_game();
 
     for (int i = 1; i < argc; ++i)
         cmd += std::string(argv[i]) + " ";
@@ -295,9 +297,9 @@ void UCI::loop(int argc, char* argv[]) {
         else if (token == "setoption")
             setoption(is);
         else if (token == "go")
-            go(pos, is, states);
+            go(uciPos, is, uciStates);
         else if (token == "position")
-            position(pos, is, states);
+            position(uciPos, is, uciStates);
         else if (token == "ucinewgame")
             Search::clear();
         else if (token == "isready")
@@ -306,13 +308,13 @@ void UCI::loop(int argc, char* argv[]) {
         // Add custom non-UCI commands, mainly for debugging purposes.
         // These commands must not be used during a search!
         else if (token == "flip")
-            pos.flip();
+            uciPos.flip();
         else if (token == "bench")
-            bench(pos, is, states);
+            bench(uciPos, is, uciStates);
         else if (token == "d")
-            sync_cout << pos << sync_endl;
+            sync_cout << uciPos << sync_endl;
         else if (token == "eval")
-            trace_eval(pos);
+            trace_eval(uciPos);
         else if (token == "compiler")
             sync_cout << compiler_info() << sync_endl;
         else if (token == "export_net")
@@ -340,59 +342,70 @@ void UCI::loop(int argc, char* argv[]) {
 }
 
 void UCI::process_command(const std::string& cmd) {
-
-    Position     pos;
+	std::cout << "Building istringstream: (" << cmd << ")\n";//test code.
     std::string  token;
-    StateListPtr states(new std::deque<StateInfo>(1));
 	std::istringstream is(cmd);
+	std::cout << "Built istringstream\n";//test code.
 
 	token.clear();  // Avoid a stale if getline() returns nothing or a blank line
 	is >> std::skipws >> token;
 
-	if (token == "quit" || token == "stop")
+	if (token == "quit" || token == "stop") {
 		Threads.stop = true;
-
+	}
 	// The GUI sends 'ponderhit' to tell that the user has played the expected move.
 	// So, 'ponderhit' is sent if pondering was done on the same move that the user
 	// has played. The search should continue, but should also switch from pondering
 	// to the normal search.
-	else if (token == "ponderhit")
+	else if (token == "ponderhit") {
 		Threads.main()->ponder = false;  // Switch to the normal search
-	else if (token == "uci")
+	}
+	else if (token == "uci") {
 		sync_cout << "id name " << engine_info(true) << "\n"
 				  << Options << "\nuciok" << sync_endl;
-	else if (token == "setoption")
+	}
+	else if (token == "setoption") {
 		setoption(is);
-	else if (token == "go")
-		go(pos, is, states);
-	else if (token == "position")
-		position(pos, is, states);
-	else if (token == "ucinewgame")
+	}
+	else if (token == "go") {
+		std::cout << "going\n";//test code.
+		go(uciPos, is, uciStates);
+		std::cout << "gone\n";//test code.
+	}
+	else if (token == "position") {
+		position(uciPos, is, uciStates);
+	}
+	else if (token == "ucinewgame") {
 		Search::clear();
-	else if (token == "isready")
+	}
+	else if (token == "isready") {
 		sync_cout << "readyok" << sync_endl;
-
+	}
 	// Add custom non-UCI commands, mainly for debugging purposes.
 	// These commands must not be used during a search!
-	else if (token == "flip")
-		pos.flip();
-	else if (token == "bench")
-		bench(pos, is, states);
-	else if (token == "d")
-		sync_cout << pos << sync_endl;
-	else if (token == "eval")
-		trace_eval(pos);
-	else if (token == "compiler")
+	else if (token == "flip") {
+		uciPos.flip();
+	}
+	else if (token == "bench") {
+		bench(uciPos, is, uciStates);
+	}
+	else if (token == "d") {
+		sync_cout << uciPos << sync_endl;
+	}
+	else if (token == "eval") {
+		trace_eval(uciPos);
+	}
+	else if (token == "compiler") {
 		sync_cout << compiler_info() << sync_endl;
-	else if (token == "export_net")
-	{
+	}
+	else if (token == "export_net") {
 		std::optional<std::string> filename;
 		std::string                f;
 		if (is >> std::skipws >> f)
 			filename = f;
 		Eval::NNUE::save_eval(filename);
 	}
-	else if (token == "--help" || token == "help" || token == "--license" || token == "license")
+	else if (token == "--help" || token == "help" || token == "--license" || token == "license") {
 		sync_cout
 		  << "\nStockfish is a powerful chess engine for playing and analyzing."
 			 "\nIt is released as free software licensed under the GNU GPLv3 License."
@@ -401,9 +414,11 @@ void UCI::process_command(const std::string& cmd) {
 			 "\nFor any further information, visit https://github.com/official-stockfish/Stockfish#readme"
 			 "\nor read the corresponding README.md and Copying.txt files distributed along with this program.\n"
 		  << sync_endl;
-	else if (!token.empty() && token[0] != '#')
+	}
+	else if (!token.empty() && token[0] != '#') {
 		sync_cout << "Unknown command: '" << cmd << "'. Type help for more information."
 				  << sync_endl;
+	}
 }
 
 // Turns a Value to an integer centipawn number,

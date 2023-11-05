@@ -195,16 +195,13 @@ Position& Position::set(const string& fenStr, bool isChess960, StateInfo* si, Th
    6) Fullmove number. The number of the full move. It starts at 1, and is
       incremented after Black's move.
 */
-
     unsigned char      col, row, token;
     size_t             idx;
     Square             sq = SQ_A8;
     std::istringstream ss(fenStr);
-
     std::memset(this, 0, sizeof(Position));
     std::memset(si, 0, sizeof(StateInfo));
     st = si;
-
     ss >> std::noskipws;
 
     // 1. Piece placement
