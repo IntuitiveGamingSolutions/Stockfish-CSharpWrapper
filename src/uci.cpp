@@ -341,7 +341,7 @@ void UCI::loop(int argc, char* argv[]) {
     } while (token != "quit" && argc == 1);  // The command-line arguments are one-shot
 }
 
-void UCI::process_command(const std::string& cmd) {
+void UCI::process_command(const char* cmd) {
 	std::cout << "Building istringstream: (" << cmd << ")\n";//test code.
     std::string  token;
 	std::istringstream is(cmd);

@@ -79,7 +79,7 @@ class Option {
 void        init(OptionsMap&);
 void        new_game();
 void        loop(int argc, char* argv[]);
-void        process_command(const std::string& cmd);
+void        process_command(const char* cmd);
 int         to_cp(Value v);
 std::string value(Value v);
 std::string square(Square s);
