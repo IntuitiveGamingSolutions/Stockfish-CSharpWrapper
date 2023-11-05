@@ -220,7 +220,7 @@ inline void read_leb_128(std::istream& stream, IntType* out, std::size_t count) 
 // writes the result on the stream s.
 // See https://en.wikipedia.org/wiki/LEB128 for a description of the compression scheme.
 template<typename IntType>
-inline void write_leb_128(std::ostream& stream, const IntType* values, std::size_t count) {
+__declspec(dllexport) inline void write_leb_128(std::ostream& stream, const IntType* values, std::size_t count) {
 
     // Write our LEB128 magic string
     stream.write(Leb128MagicString, Leb128MagicStringSize);

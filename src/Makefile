@@ -37,25 +37,25 @@ else ifeq ($(COMP),mingw)
 	endif
 endif
 
-### Executable name
+### Set Target Name and setup library build.
 ifeq ($(target_windows),yes)
-	EXE = stockfish.exe
-else
-	EXE = stockfish
+    TARGET = stockfish.dll
+#TODO: else if linux, else if mac, else if android, else if ios...
 endif
+CXXFLAGS+=-shared
 
 ### Installation dir definitions
 PREFIX = /usr/local
 BINDIR = $(PREFIX)/bin
 
 ### Built-in benchmark for pgo-builds
-PGOBENCH = $(WINE_PATH) ./$(EXE) bench
+PGOBENCH = $(WINE_PATH) ./$(TARGET) bench
 
 ### Source and object files
 SRCS = benchmark.cpp bitboard.cpp evaluate.cpp main.cpp \
 	misc.cpp movegen.cpp movepick.cpp position.cpp \
 	search.cpp thread.cpp timeman.cpp tt.cpp uci.cpp ucioption.cpp tune.cpp syzygy/tbprobe.cpp \
-	nnue/evaluate_nnue.cpp nnue/features/half_ka_v2_hm.cpp
+	nnue/evaluate_nnue.cpp nnue/features/half_ka_v2_hm.cpp stockfish_wrapper.cpp
 
 HEADERS = benchmark.h bitboard.h evaluate.h misc.h movegen.h movepick.h \
 		nnue/evaluate_nnue.h nnue/features/half_ka_v2_hm.h nnue/layers/affine_transform.h \
@@ -63,7 +63,7 @@ HEADERS = benchmark.h bitboard.h evaluate.h misc.h movegen.h movepick.h \
 		nnue/layers/sqr_clipped_relu.h nnue/nnue_accumulator.h nnue/nnue_architecture.h \
 		nnue/nnue_common.h nnue/nnue_feature_transformer.h position.h \
 		search.h syzygy/tbprobe.h thread.h thread_win32_osx.h timeman.h \
-		tt.h tune.h types.h uci.h
+		tt.h tune.h types.h uci.h stockfish_wrapper.h
 
 OBJS = $(notdir $(SRCS:.cpp=.o))
 
@@ -878,18 +878,19 @@ profile-build: net config-sanity objclean profileclean
 	@echo ""
 	@echo "Step 4/4. Deleting profile data ..."
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) profileclean
-
+	
 strip:
-	$(STRIP) $(EXE)
+	$(STRIP) $(TARGET)
 
 install:
 	-mkdir -p -m 755 $(BINDIR)
-	-cp $(EXE) $(BINDIR)
-	$(STRIP) $(BINDIR)/$(EXE)
+	-cp $(TARGET) $(BINDIR)
+	$(STRIP) $(BINDIR)/$(TARGET)
 
 # clean all
 clean: objclean profileclean
 	@rm -f .depend *~ core
+	@rm -f $(TARGET) $(OBJECTS)
 
 # clean binaries and objects
 objclean:
@@ -962,7 +963,7 @@ default:
 ### Section 5. Private Targets
 ### ==========================================================================
 
-all: $(EXE) .depend
+all: $(TARGET) .depend
 
 config-sanity: net
 	@echo ""
@@ -1022,7 +1023,7 @@ config-sanity: net
 	@test "$(comp)" = "gcc" || test "$(comp)" = "icx" || test "$(comp)" = "mingw" || test "$(comp)" = "clang" \
 	|| test "$(comp)" = "armv7a-linux-androideabi16-clang"  || test "$(comp)" = "aarch64-linux-android21-clang"
 
-$(EXE): $(OBJS)
+$(TARGET): $(OBJS)
 	+$(CXX) -o $@ $(OBJS) $(LDFLAGS)
 
 # Force recompilation to ensure version info is up-to-date
