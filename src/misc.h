@@ -19,6 +19,8 @@
 #ifndef MISC_H_INCLUDED
 #define MISC_H_INCLUDED
 
+#include "event_out.h"
+
 #include <cassert>
 #include <chrono>
 #include <cstddef>
@@ -68,7 +70,7 @@ enum SyncCout {
 };
 std::ostream& operator<<(std::ostream&, SyncCout);
 
-#define sync_cout std::cout << IO_LOCK
+#define sync_cout StockfishWrapper::IO::event_out << IO_LOCK
 #define sync_endl std::endl << IO_UNLOCK
 
 
