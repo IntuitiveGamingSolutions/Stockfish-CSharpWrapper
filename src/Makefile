@@ -51,25 +51,29 @@ endif
 ### Set Target Name and setup library build.
 ifeq ($(target_windows),yes)
     TARGET = stockfish.dll
-    CXXFLAGS+=-shared
-	# Add any Windows-specific CXXFlags here if neccesary
-	CXXFLAGS+=-DDLL_EXPORT
+    CXXFLAGS += -shared
+    # Add any Windows-specific CXXFlags here if necessary
+    CXXFLAGS += -DDLL_EXPORT
 else ifeq ($(target_linux),yes)
     TARGET = stockfish.so
-    CXXFLAGS+=-shared
+    CXXFLAGS += -shared
     # Add any Linux-specific CXXFlags here if necessary
+    CXXFLAGS += -fPIC
 else ifeq ($(target_macos),yes)
     TARGET = stockfish.dylib
-    CXXFLAGS+=-dynamiclib
+    CXXFLAGS += -dynamiclib
     # Add any MacOS-specific CXXFlags here if necessary
+    CXXFLAGS += -fPIC
 else ifeq ($(target_android),yes)
     TARGET = libstockfish.so
-    CXXFLAGS+=-shared
+    CXXFLAGS += -shared
     # Add any Android-specific CXXFlags here if necessary
+    CXXFLAGS += -fPIC
 else ifeq ($(target_ios),yes)
     TARGET = libstockfish.dylib
-    CXXFLAGS+=-dynamiclib
+    CXXFLAGS += -dynamiclib
     # Add any iOS-specific CXXFlags here if necessary
+    CXXFLAGS += -fPIC
 endif
 
 ### Installation dir definitions
