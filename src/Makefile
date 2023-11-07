@@ -53,6 +53,7 @@ ifeq ($(target_windows),yes)
     TARGET = stockfish.dll
     CXXFLAGS+=-shared
 	# Add any Windows-specific CXXFlags here if neccesary
+	CXXFLAGS+=-DDLL_EXPORT
 else ifeq ($(target_linux),yes)
     TARGET = stockfish.so
     CXXFLAGS+=-shared
@@ -90,7 +91,8 @@ HEADERS = benchmark.h bitboard.h evaluate.h misc.h movegen.h movepick.h \
 		nnue/layers/sqr_clipped_relu.h nnue/nnue_accumulator.h nnue/nnue_architecture.h \
 		nnue/nnue_common.h nnue/nnue_feature_transformer.h position.h \
 		search.h syzygy/tbprobe.h thread.h thread_win32_osx.h timeman.h \
-		tt.h tune.h types.h uci.h event_output_stream.h event_out.h stockfish_wrapper.h
+		tt.h tune.h types.h uci.h event_output_stream.h event_out.h stockfish_wrapper.h \
+		export.h
 
 OBJS = $(notdir $(SRCS:.cpp=.o))
 
