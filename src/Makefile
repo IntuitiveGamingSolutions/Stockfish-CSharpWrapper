@@ -25,24 +25,51 @@ ifeq ($(KERNEL),Linux)
 	OS := $(shell uname -o)
 endif
 
-### Target Windows OS
+### Determine target
 ifeq ($(OS),Windows_NT)
-	ifneq ($(COMP),ndk)
-		target_windows = yes
-	endif
+        ifneq ($(COMP),ndk)
+                target_windows = yes
+        endif
 else ifeq ($(COMP),mingw)
-	target_windows = yes
-	ifeq ($(WINE_PATH),)
-		WINE_PATH := $(shell which wine)
-	endif
+        target_windows = yes
+        ifeq ($(WINE_PATH),)
+                WINE_PATH := $(shell which wine)
+        endif
+### Target macOS
+else ifeq ($(shell uname -s),Darwin)
+        target_macos = yes
+### Target iOS
+else ifeq ($(PLATFORM),ios)
+        target_ios = yes
+### Target Android
+else ifeq ($(PLATFORM),android)
+        target_android = yes
+else
+        target_linux = yes
 endif
 
 ### Set Target Name and setup library build.
 ifeq ($(target_windows),yes)
     TARGET = stockfish.dll
-#TODO: else if linux, else if mac, else if android, else if ios...
+    CXXFLAGS+=-shared
+	# Add any Windows-specific CXXFlags here if neccesary
+else ifeq ($(target_linux),yes)
+    TARGET = stockfish.so
+    CXXFLAGS+=-shared
+    # Add any Linux-specific CXXFlags here if necessary
+else ifeq ($(target_macos),yes)
+    TARGET = stockfish.dylib
+    CXXFLAGS+=-dynamiclib
+    # Add any MacOS-specific CXXFlags here if necessary
+else ifeq ($(target_android),yes)
+    TARGET = libstockfish.so
+    CXXFLAGS+=-shared
+    # Add any Android-specific CXXFlags here if necessary
+else ifeq ($(target_ios),yes)
+    TARGET = libstockfish.dylib
+    CXXFLAGS+=-dynamiclib
+    # Add any iOS-specific CXXFlags here if necessary
 endif
-CXXFLAGS+=-shared
 
 ### Installation dir definitions
 PREFIX = /usr/local
