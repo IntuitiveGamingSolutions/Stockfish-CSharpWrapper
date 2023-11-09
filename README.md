@@ -29,6 +29,9 @@
 
 </div>
 
+## Modified Fork
+This is a modified fork of the official Stockfish repository. The intention is to allow easy building as a dynamic/shared library and communication with C#.
+
 ## Overview
 
 [Stockfish][website-link] is a **free and strong UCI chess engine** derived from
