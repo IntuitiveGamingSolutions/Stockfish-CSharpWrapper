@@ -18,7 +18,6 @@
 ### ==========================================================================
 ### Section 1. General Configuration
 ### ==========================================================================
-
 ### Establish the operating system name
 KERNEL := $(shell uname -s)
 ifeq ($(KERNEL),Linux)
@@ -35,45 +34,54 @@ else ifeq ($(COMP),mingw)
         ifeq ($(WINE_PATH),)
                 WINE_PATH := $(shell which wine)
         endif
-### Target macOS
-else ifeq ($(shell uname -s),Darwin)
-        target_macos = yes
-### Target iOS
-else ifeq ($(PLATFORM),ios)
-        target_ios = yes
-### Target Android
-else ifeq ($(PLATFORM),android)
-        target_android = yes
+endif
+
+### Static library or DLL?
+ifeq ($(staticlib),yes)
+    # ... (build static library)
 else
-        target_linux = yes
+    CXXFLAGS += -DBUILD_DLL
+    # ... (build DLL)
 endif
 
 ### Set Target Name and setup library build.
-ifeq ($(target_windows),yes)
-    TARGET = stockfish.dll
-    CXXFLAGS += -shared
-    # Add any Windows-specific CXXFlags here if necessary
-    CXXFLAGS += -DDLL_EXPORT
-else ifeq ($(target_linux),yes)
-    TARGET = stockfish.so
-    CXXFLAGS += -shared
-    # Add any Linux-specific CXXFlags here if necessary
-    CXXFLAGS += -fPIC
-else ifeq ($(target_macos),yes)
-    TARGET = stockfish.dylib
-    CXXFLAGS += -dynamiclib
-    # Add any MacOS-specific CXXFlags here if necessary
-    CXXFLAGS += -fPIC
-else ifeq ($(target_android),yes)
-    TARGET = libstockfish.so
-    CXXFLAGS += -shared
-    # Add any Android-specific CXXFlags here if necessary
-    CXXFLAGS += -fPIC
-else ifeq ($(target_ios),yes)
-    TARGET = libstockfish.dylib
-    CXXFLAGS += -dynamiclib
-    # Add any iOS-specific CXXFlags here if necessary
-    CXXFLAGS += -fPIC
+ifeq ($(staticlib),yes)
+    ifeq ($(target_windows),yes)
+        TARGET = stockfish.lib
+        CXXFLAGS += -static
+    else ifeq ($(PLATFORM),linux)
+        TARGET = stockfish.a
+        CXXFLAGS += -static
+    else ifeq ($(PLATFORM),macos)
+        TARGET = stockfish.a
+        CXXFLAGS += -static
+    else ifeq ($(PLATFORM),android)
+        TARGET = libstockfish.a
+        CXXFLAGS += -static
+    else ifeq ($(PLATFORM),ios)
+        TARGET = libstockfish.a
+        CXXFLAGS += -static
+    endif
+else
+    ifeq ($(target_windows),yes)
+        TARGET = stockfish.dll
+        CXXFLAGS += -shared
+        CXXFLAGS += -DDLL_EXPORT
+    else ifeq ($(PLATFORM),linux)
+        TARGET = stockfish.so
+        CXXFLAGS += -shared
+        CXXFLAGS += -fPIC
+    else ifeq ($(PLATFORM),macos)
+        TARGET = stockfish.dylib
+        CXXFLAGS += -dynamiclib
+    else ifeq ($(PLATFORM),android)
+        TARGET = libstockfish.so
+        CXXFLAGS += -shared
+        CXXFLAGS += -fPIC
+    else ifeq ($(PLATFORM),ios)
+        TARGET = libstockfish.dylib
+        CXXFLAGS += -dynamiclib
+    endif
 endif
 
 ### Installation dir definitions
@@ -514,11 +522,25 @@ ifeq ($(COMP),clang)
 endif
 
 ifeq ($(KERNEL),Darwin)
-	CXXFLAGS += -mmacosx-version-min=10.14
-	LDFLAGS += -mmacosx-version-min=10.14
 	ifneq ($(arch),any)
-		CXXFLAGS += -arch $(arch)
-		LDFLAGS += -arch $(arch)
+		ifneq ($(arch),armv8)
+			CXXFLAGS += -arch $(arch)
+			LDFLAGS += -arch $(arch)
+		else
+			CXXFLAGS += -arch arm64
+			LDFLAGS += -arch arm64
+		endif
+	endif
+	ifeq ($(PLATFORM),macos)
+		CXXFLAGS += -mmacosx-version-min=10.14
+		LDFLAGS += -mmacosx-version-min=10.14
+		CXXFLAGS += -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk
+		LDFLAGS += -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk
+	else ifeq ($(PLATFORM),ios)
+		CXXFLAGS += -mios-version-min=11.0
+		LDFLAGS += -mios-version-min=11.0
+		CXXFLAGS += -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk
+		LDFLAGS += -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk
 	endif
 	XCRUN = xcrun
 endif
@@ -527,10 +549,10 @@ endif
 # In earlier NDK versions, you'll need to pass -fno-addrsig if using GNU binutils.
 # Currently we don't know how to make PGO builds with the NDK yet.
 ifeq ($(COMP),ndk)
-	CXXFLAGS += -stdlib=libc++ -fPIE
+	CXXFLAGS += -stdlib=libc++ -fPIE -fPIC
 	comp=clang
 	ifeq ($(arch),armv7)
-		CXX=armv7a-linux-androideabi16-clang++
+		CXX=$(NDK_HOME)/armv7a-linux-androideabi16-clang++
 		CXXFLAGS += -mthumb -march=armv7-a -mfloat-abi=softfp -mfpu=neon
 		ifneq ($(shell which arm-linux-androideabi-strip 2>/dev/null),)
 			STRIP=arm-linux-androideabi-strip
@@ -539,14 +561,18 @@ ifeq ($(COMP),ndk)
 		endif
 	endif
 	ifeq ($(arch),armv8)
-		CXX=aarch64-linux-android21-clang++
+		CXX=$(NDK_HOME)/aarch64-linux-android21-clang++
 		ifneq ($(shell which aarch64-linux-android-strip 2>/dev/null),)
 			STRIP=aarch64-linux-android-strip
 		else
 			STRIP=llvm-strip
 		endif
 	endif
-	LDFLAGS += -static-libstdc++ -pie -lm -latomic
+	ifeq ($(staticlib),yes)
+		LDFLAGS += -static-libstdc++ -pie -lm -latomic -static
+	else
+		LDFLAGS += -static-libstdc++ -pie -lm -latomic -shared
+	endif
 endif
 
 ifeq ($(comp),icx)
@@ -621,18 +647,6 @@ ifeq ($(optimize),yes)
 		endif
 	endif
 
-	ifeq ($(KERNEL),Darwin)
-		ifeq ($(comp),$(filter $(comp),clang icx))
-			CXXFLAGS += -mdynamic-no-pic
-		endif
-
-		ifeq ($(comp),gcc)
-			ifneq ($(arch),arm64)
-				CXXFLAGS += -mdynamic-no-pic
-			endif
-		endif
-	endif
-
 	ifeq ($(comp),clang)
 		clangmajorversion := $(shell $(CXX) -dumpversion 2>/dev/null | cut -f1 -d.)
 		ifeq ($(shell expr $(clangmajorversion) \< 16),1)
@@ -643,7 +657,9 @@ endif
 
 ### 3.4 Bits
 ifeq ($(bits),64)
-	CXXFLAGS += -DIS_64BIT
+	ifneq ($(arch),armv7)
+		CXXFLAGS += -DIS_64BIT
+	endif
 endif
 
 ### 3.5 prefetch and popcount
@@ -927,7 +943,7 @@ clean: objclean profileclean
 
 # clean binaries and objects
 objclean:
-	@rm -f stockfish stockfish.exe *.o ./syzygy/*.o ./nnue/*.o ./nnue/features/*.o
+	@rm -f stockfish $(TARGET) *.o ./syzygy/*.o ./nnue/*.o ./nnue/features/*.o
 
 # clean auxiliary profiling files
 profileclean:
@@ -1056,8 +1072,13 @@ config-sanity: net
 	@test "$(comp)" = "gcc" || test "$(comp)" = "icx" || test "$(comp)" = "mingw" || test "$(comp)" = "clang" \
 	|| test "$(comp)" = "armv7a-linux-androideabi16-clang"  || test "$(comp)" = "aarch64-linux-android21-clang"
 
+ifeq ($(staticlib),yes)
 $(TARGET): $(OBJS)
-	+$(CXX) -o $@ $(OBJS) $(LDFLAGS)
+	ar rcs $@ $^
+else
+$(TARGET): $(OBJS)
+	$(CXX) -o $@ $(OBJS) $(LDFLAGS)
+endif
 
 # Force recompilation to ensure version info is up-to-date
 misc.o: FORCE

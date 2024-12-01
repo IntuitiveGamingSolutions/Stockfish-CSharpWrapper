@@ -10,8 +10,12 @@ namespace StockfishWrapper {
     // SECTION: Stockfish core method(s).
 	extern "C" DLL_API bool is_initialized();
     extern "C" DLL_API void initialize();
-    extern "C" DLL_API void deinitialize();
+	extern "C" DLL_API void deinitialize();
 	
+	// SECTION: Stockfish UCI method(s).
+	extern "C" DLL_API bool is_uci_initialized();
+    extern "C" DLL_API void initialize_uci();
+
 	// SECTION: cout redirection.
 	typedef void (*LineProcessedDelegate)(const char* line);
 	extern "C" DLL_API void register_output_line_callback(LineProcessedDelegate callback);

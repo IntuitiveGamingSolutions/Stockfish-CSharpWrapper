@@ -7,6 +7,9 @@ src/.depend
 src/stockfish.dll
 src/stockfish.so
 src/stockfish.dylib
+src/libstockfish.so
+src/libstockfish.dylib
+src/libstockfish.dll
 src/-lstdc++.res
 
 # Neural network for the NNUE evaluation

@@ -66,6 +66,9 @@ class Option {
     operator int() const;
     operator std::string() const;
     bool operator==(const char*) const;
+	
+	size_t get_idx() const;
+	std::string get_option_string(const std::string& name) const;
 
    private:
     friend std::ostream& operator<<(std::ostream&, const OptionsMap&);

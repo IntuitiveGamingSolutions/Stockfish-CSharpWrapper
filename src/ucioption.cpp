@@ -62,7 +62,6 @@ bool CaseInsensitiveLess::operator()(const string& s1, const string& s2) const {
 
 // Initializes the UCI options to their hard-coded default values
 void init(OptionsMap& o) {
-
     constexpr int MaxHashMB = Is64Bit ? 33554432 : 2048;
 
     o["Debug Log File"] << Option("", on_logger);
@@ -91,7 +90,6 @@ void init(OptionsMap& o) {
 // Used to print all the options default values in chronological
 // insertion order (the idx field) and in the format defined by the UCI protocol.
 std::ostream& operator<<(std::ostream& os, const OptionsMap& om) {
-
     for (size_t idx = 0; idx < om.size(); ++idx)
         for (const auto& it : om)
             if (it.second.idx == idx)
@@ -211,6 +209,23 @@ Option& Option::operator=(const string& v) {
         on_change(*this);
 
     return *this;
+}
+
+// Return the 'idx' private field.
+size_t Option::get_idx() const {
+	return idx;
+}
+
+// Return an std::string of the option in its entirety.
+std::string Option::get_option_string(const std::string& name) const {
+	std::stringstream ss;
+	ss << "\noption name " << name << " type " << type;
+	if (type == "string" || type == "check" || type == "combo")
+		ss << " default " << defaultValue;
+	if (type == "spin")
+		ss << " default " << int(stof(defaultValue)) << " min " << min << " max " << max;
+
+	return ss.str();
 }
 
 }  // namespace UCI

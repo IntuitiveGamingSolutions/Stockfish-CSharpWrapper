@@ -15,6 +15,7 @@ namespace StockfishWrapper {
 	// Static (local) field(s).
 	static LineProcessedDelegate outputLineCallback = nullptr;
 	static bool isInitialized = false;
+	static bool isUciInitialized = false;
 	
 	// Static (local) callback(s).
 	static void on_output_received(const char* output) {
@@ -35,13 +36,18 @@ namespace StockfishWrapper {
 		// Log engine version.
 		IO::event_out << Stockfish::engine_info() << std::endl;
 		
+		// Initialize UCI if it isnt.
+		if (!is_uci_initialized())
+			initialize_uci();
+		
 		// Initialize.
-		Stockfish::UCI::init(Stockfish::Options);
 		Stockfish::Tune::init();
 		Stockfish::Bitboards::init();
 		Stockfish::Position::init();
 		Stockfish::Threads.set(size_t(Stockfish::Options["Threads"]));
 		Stockfish::Search::clear();  // After threads are up
+		
+		// Initialize NNUE.
 		Stockfish::Eval::NNUE::init();	
 
 		// Start a new game.
@@ -50,12 +56,25 @@ namespace StockfishWrapper {
 		// Initialized.
 		isInitialized = true;
 	}
-
+	
 	void deinitialize() {
-		Stockfish::Threads.set(0);
-		
 		// Not initialized.
 		isInitialized = false;
+		
+		// Stop & deallocate threads.
+		Stockfish::Threads.stop = true;
+		Stockfish::Threads.set(0);		
+	}
+	
+	bool is_uci_initialized() {
+		return isUciInitialized;
+	}
+	
+	void initialize_uci() {
+		Stockfish::UCI::init(Stockfish::Options);
+		
+		// UCI initialized.
+		isUciInitialized = true;
 	}
 	
 	void register_output_line_callback(LineProcessedDelegate callback) {
