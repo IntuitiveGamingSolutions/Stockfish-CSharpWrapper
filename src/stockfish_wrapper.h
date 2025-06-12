@@ -15,6 +15,9 @@ namespace StockfishWrapper {
 	// SECTION: Stockfish UCI method(s).
 	extern "C" DLL_API bool is_uci_initialized();
     extern "C" DLL_API void initialize_uci();
+	
+	// SECTION: Stockfish options method(s).
+	extern "C" DLL_API void set_option(const char* option, const char* val);
 
 	// SECTION: cout redirection.
 	typedef void (*LineProcessedDelegate)(const char* line);
