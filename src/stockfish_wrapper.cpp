@@ -9,6 +9,7 @@
 #include "position.h"
 #include "evaluate.h"
 #include "event_out.h"
+#include <string>
 #include <iostream>
 
 namespace StockfishWrapper {
@@ -30,6 +31,11 @@ namespace StockfishWrapper {
 	}
 	
 	void initialize() {
+#if defined(DEBUG_WRAPPER)
+		// Debug logging.
+		std::cout << "STOCKFISH_WRAPPER - initialize()" << std::endl;
+#endif
+		
 		// Redirect cout.
 		IO::set_event_out_callback(on_output_received);
 
@@ -71,10 +77,26 @@ namespace StockfishWrapper {
 	}
 	
 	void initialize_uci() {
+#if defined(DEBUG_WRAPPER)
+		// Debug logging.
+		std::cout << "STOCKFISH_WRAPPER - initialize_uci()" << std::endl;
+#endif
+		
+		// Initialize UCI.
 		Stockfish::UCI::init(Stockfish::Options);
 		
 		// UCI initialized.
 		isUciInitialized = true;
+	}
+	
+	void set_option(const char* option, const char* val) {
+		std::string optStr(option);
+		std::string valStr(val);
+#if defined(DEBUG_WRAPPER)
+		// Debug logging.
+		std::cout << "STOCKFISH_WRAPPER - set_option(" << optStr << ", " << valStr << ")" << std::endl;
+#endif
+		Stockfish::Options[optStr] = valStr;
 	}
 	
 	void register_output_line_callback(LineProcessedDelegate callback) {
@@ -83,7 +105,12 @@ namespace StockfishWrapper {
 	
 	namespace UCI {
 		void process_command(const char* cmd) {
+#if defined(DEBUG_WRAPPER)
+			// Debug logging.
+			std::cout << "STOCKFISH_WRAPPER - UCI::process_command(" << std::string(cmd) << ")" << std::endl;
+#endif
 			Stockfish::UCI::process_command(cmd);
 		}
 	}
 }
+
